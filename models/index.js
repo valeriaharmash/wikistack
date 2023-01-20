@@ -1,5 +1,13 @@
 const Sequelize = require('sequelize');
-const db = new Sequelize('postgres://localhost:5432/wikistack');
+const db = new Sequelize('postgres://localhost:5432/wikistack', {
+  logging: false,
+});
+
+const generateSlug = (title) => {
+  // Removes all non-alphanumeric characters from title
+  // And make whitespace underscore
+  return title.replace(/\s+/g, '_').replace(/\W/g, '');
+};
 
 const Page = db.define('page', {
   title: {
@@ -15,8 +23,12 @@ const Page = db.define('page', {
     allowNull: false,
   },
   status: {
-    type: Sequelize.ENUM('open', 'closed')
-  }
+    type: Sequelize.ENUM('open', 'closed'),
+  },
+});
+
+Page.addHook('beforeValidate', (page, options) => {
+  page.slug = generateSlug(page.title);
 });
 
 const User = db.define('user', {
@@ -28,9 +40,12 @@ const User = db.define('user', {
     type: Sequelize.STRING,
     allowNull: false,
     validate: {
-      isEmail: true
-    }
-  }
+      isEmail: true,
+    },
+  },
 });
+
+//  One to many relation
+Page.belongsTo(User, { as: 'author' });
 
 module.exports = { db, Page, User };
